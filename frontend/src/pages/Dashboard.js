@@ -12,6 +12,7 @@ function Dashboard() {
     const [estimatedMinutes, setEstimatedMinutes] = useState('');
     const [showForm, setShowForm] = useState(false);
     const [aiSuggestion, setAiSuggestion] = useState('');
+    const [expandedTask, setExpandedTask] = useState(null);
 
     const navigate = useNavigate();
     const userId = localStorage.getItem('userId');
@@ -25,6 +26,18 @@ function Dashboard() {
     const fetchTasks = async () => {
         const res = await axios.get(`http://localhost:3000/tasks/${userId}`);
         setTasks(res.data);
+        if (res.data.length > 0) {
+            getAiSuggestion(res.data);
+        }
+    };
+
+    const getAiSuggestion = async (taskList) => {
+        try {
+            const res = await axios.post('http://localhost:3000/ai/suggest', { tasks: taskList });
+            setAiSuggestion(res.data.suggestion);
+        } catch (err) {
+            console.error('AI önerisi alınamadı.');
+        }
     };
 
     const handleAddTask = async () => {
@@ -113,7 +126,7 @@ function Dashboard() {
 
                 <div className="task-list">
                     {tasks.map(task => (
-                        <div key={task.id} className={`task-item ${task.completed ? 'completed' : ''}`}>
+                        <div key={task.id} className={`task-item ${task.completed ? 'completed' : ''}`} onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}>
                             <div className="task-check" onClick={() => handleComplete(task.id)}>
                                 {task.completed ? '✓' : ''}
                             </div>
@@ -122,7 +135,11 @@ function Dashboard() {
                                 <div className="task-meta">
                                     {task.deadline && `deadline: ${task.deadline}`}
                                     {task.estimated_hours > 0 && ` · ${Math.floor(task.estimated_hours / 60) > 0 ? Math.floor(task.estimated_hours / 60) + ' saat ' : ''}${task.estimated_hours % 60 > 0 ? task.estimated_hours % 60 + ' dk' : ''}`}
-                                </div>                            </div>
+                                </div>
+                                {expandedTask === task.id && task.description && (
+                                    <div className="task-description">{task.description}</div>
+                                )}
+                            </div>
                             <span className={`badge ${task.priority}`}>{task.priority.toUpperCase()}</span>
                             <button className="delete-btn" onClick={() => handleDelete(task.id)}>✕</button>
                         </div>

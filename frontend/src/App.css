@@ -335,4 +335,13 @@ body {
   font-size: 13px;
 }
 
+.task-description {
+  font-size: 12px;
+  color: #7a8fa8;
+  margin-top: 6px;
+  line-height: 1.5;
+  padding-top: 6px;
+  border-top: 1px solid #3a4a63;
+}
+
 .delete-btn:hover { color: #f08080; background: rgba(224,92,92,0.1); }

@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const app = express();
@@ -10,9 +11,11 @@ app.use(express.json());
 
 const authRoutes = require('./routes/auth');
 const taskRoutes = require('./routes/tasks');
+const aiRoutes = require('./routes/ai');
 
 app.use('/auth', authRoutes);
 app.use('/tasks', taskRoutes);
+app.use('/ai', aiRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Smart Task Manager API çalışıyor!' });
