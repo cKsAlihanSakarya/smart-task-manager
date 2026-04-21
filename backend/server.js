@@ -3,8 +3,16 @@ const cors = require('cors');
 const app = express();
 const PORT = 3000;
 
+require('./db/database');
+
 app.use(cors());
 app.use(express.json());
+
+const authRoutes = require('./routes/auth');
+const taskRoutes = require('./routes/tasks');
+
+app.use('/auth', authRoutes);
+app.use('/tasks', taskRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Smart Task Manager API çalışıyor!' });
