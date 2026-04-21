@@ -240,6 +240,7 @@ function Dashboard({ userId, email }) {
         </div>
       )}
 
+      <div style={{ marginTop: '8px' }}></div>
       <div className="task-list">
         {filteredTasks.map(task => (
           <div
