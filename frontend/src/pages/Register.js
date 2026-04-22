@@ -12,10 +12,10 @@ function Register() {
   const handleRegister = async () => {
     try {
       await axios.post('http://localhost:3000/auth/register', { email, password });
-      setSuccess('Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz...');
+      setSuccess('Registration successful! Redirecting to login...');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
-      setError('Bu email zaten kayıtlı.');
+      setError('This email is already registered.');
     }
   };
 
@@ -26,10 +26,10 @@ function Register() {
         <p className="auth-tagline">// smart task manager</p>
         {error && <p className="error-msg">{error}</p>}
         {success && <p className="success-msg">{success}</p>}
-        <input type="email" placeholder="E-posta" value={email} onChange={e => setEmail(e.target.value)} />
-        <input type="password" placeholder="Şifre" value={password} onChange={e => setPassword(e.target.value)} />
-        <button onClick={handleRegister}>Kayıt Ol</button>
-        <p className="auth-switch">Zaten hesabın var mı? <span onClick={() => navigate('/login')}>Giriş yap</span></p>
+        <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} />
+        <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} />
+        <button onClick={handleRegister}>Sign Up</button>
+        <p className="auth-switch">Already have an account? <span onClick={() => navigate('/login')}>Sign in</span></p>
       </div>
     </div>
   );

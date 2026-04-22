@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 
 function Dashboard({ userId, email }) {
   const [tasks, setTasks] = useState([]);
@@ -45,7 +44,7 @@ function Dashboard({ userId, email }) {
       const res = await axios.post('http://localhost:3000/ai/suggest', { tasks: taskList });
       setAiSuggestion(res.data.suggestion);
     } catch (err) {
-      console.error('AI önerisi alınamadı:', err.message);
+      console.error('AI suggestion failed:', err.message);
     }
   };
 
@@ -55,7 +54,7 @@ function Dashboard({ userId, email }) {
     tasks.forEach(task => {
       if (task.reminder_enabled && task.reminder_time && !task.completed) {
         if (task.reminder_time === nowStr) {
-          alert(`⏰ Hatırlatıcı: "${task.title}" görevi için belirlediğin zaman geldi!`);
+          alert(`⏰ Reminder: It's time for "${task.title}"!`);
         }
       }
     });
@@ -163,32 +162,36 @@ function Dashboard({ userId, email }) {
   const pendingCount = tasks.filter(t => t.completed === 0).length;
 
   const deadlineOptions = [
-    { label: 'Bugün', value: 'today' },
-    { label: 'Yarın', value: 'tomorrow' },
-    { label: '1 hafta', value: 'week' },
-    { label: 'Bu ay', value: 'month' },
-    { label: 'Tarih seç', value: 'custom' },
+    { label: 'Today', value: 'today' },
+    { label: 'Tomorrow', value: 'tomorrow' },
+    { label: '1 Week', value: 'week' },
+    { label: 'This Month', value: 'month' },
+    { label: 'Pick a date', value: 'custom' },
   ];
 
   const reminderOptions = {
-    today:    [{ label: '2 saat sonra', value: '2saat' }, { label: '1 saat sonra', value: '1saat' }],
-    tomorrow: [{ label: 'Bu gece 21:00', value: 'gece21' }, { label: 'Yarın sabahı 09:00', value: 'yarin09' }],
-    week:     [{ label: '1 gün önce 09:00', value: '1gun' }, { label: '3 gün önce 09:00', value: '3gun' }],
-    month:    [{ label: '1 gün önce 09:00', value: '1gun' }, { label: '3 gün önce 09:00', value: '3gun' }, { label: '1 hafta önce 09:00', value: '1hafta' }],
-    custom:   [{ label: '1 gün önce 09:00', value: '1gun' }, { label: '3 gün önce 09:00', value: '3gun' }, { label: '1 hafta önce 09:00', value: '1hafta' }],
+    today:    [{ label: 'In 2 hours', value: '2saat' }, { label: 'In 1 hour', value: '1saat' }],
+    tomorrow: [{ label: 'Tonight at 9 PM', value: 'gece21' }, { label: 'Tomorrow at 9 AM', value: 'yarin09' }],
+    week:     [{ label: '1 day before 9 AM', value: '1gun' }, { label: '3 days before 9 AM', value: '3gun' }],
+    month:    [{ label: '1 day before 9 AM', value: '1gun' }, { label: '3 days before 9 AM', value: '3gun' }, { label: '1 week before 9 AM', value: '1hafta' }],
+    custom:   [{ label: '1 day before 9 AM', value: '1gun' }, { label: '3 days before 9 AM', value: '3gun' }, { label: '1 week before 9 AM', value: '1hafta' }],
+  };
+
+  const priorityLabel = {
+    critical: 'CRITICAL', high: 'HIGH', medium: 'MEDIUM', low: 'LOW', minimal: 'MINIMAL'
   };
 
   return (
     <div className="main-content">
       <div className="content-header">
-        <h2>Merhaba, {email} 👋</h2>
-        <button className="add-btn" onClick={() => setShowForm(!showForm)}>＋ Yeni Görev</button>
+        <h2>Hello, {email} 👋</h2>
+        <button className="add-btn" onClick={() => setShowForm(!showForm)}>＋ New Task</button>
       </div>
 
       <div className="stats">
-        <div className="stat-card"><div className="stat-label">Toplam</div><div className="stat-value accent">{tasks.length}</div></div>
-        <div className="stat-card"><div className="stat-label">Bekleyen</div><div className="stat-value yellow">{pendingCount}</div></div>
-        <div className="stat-card"><div className="stat-label">Tamamlanan</div><div className="stat-value green">{completedCount}</div></div>
+        <div className="stat-card"><div className="stat-label">Total</div><div className="stat-value accent">{tasks.length}</div></div>
+        <div className="stat-card"><div className="stat-label">Pending</div><div className="stat-value yellow">{pendingCount}</div></div>
+        <div className="stat-card"><div className="stat-label">Completed</div><div className="stat-value green">{completedCount}</div></div>
       </div>
 
       {urgentTasks.length > 0 && (
@@ -197,7 +200,7 @@ function Dashboard({ userId, email }) {
           borderRadius: '10px', padding: '12px 16px', fontSize: '13px',
           color: '#f0b429', display: 'flex', alignItems: 'center', gap: '10px'
         }}>
-          ⚠️ <span><strong>{urgentTasks.length} görevin</strong> son tarihi yaklaşıyor: {urgentTasks.map(t => t.title).join(', ')}</span>
+          ⚠️ <span><strong>{urgentTasks.length} task{urgentTasks.length > 1 ? 's' : ''}</strong> with upcoming deadlines: {urgentTasks.map(t => t.title).join(', ')}</span>
         </div>
       )}
 
@@ -205,7 +208,7 @@ function Dashboard({ userId, email }) {
         <div className="ai-banner">
           <span className="ai-icon">🤖</span>
           <div>
-            <div className="ai-label">AI ÖNERİSİ</div>
+            <div className="ai-label">AI SUGGESTION</div>
             <div className="ai-text">{aiSuggestion}</div>
           </div>
         </div>
@@ -213,32 +216,32 @@ function Dashboard({ userId, email }) {
 
       {showForm && (
         <div className="task-form">
-          <input placeholder="Görev adı" value={title} onChange={e => setTitle(e.target.value)} />
-          <input placeholder="Açıklama (opsiyonel)" value={description} onChange={e => setDescription(e.target.value)} />
+          <input placeholder="Task name" value={title} onChange={e => setTitle(e.target.value)} />
+          <input placeholder="Description (optional)" value={description} onChange={e => setDescription(e.target.value)} />
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <select value={priority} onChange={e => setPriority(e.target.value)}>
-              <option value="critical">🔴 Kritik</option>
-              <option value="high">🟠 Yüksek</option>
-              <option value="medium">🟡 Orta</option>
-              <option value="low">🟢 Düşük</option>
-              <option value="minimal">⚪ Çok Düşük</option>
+              <option value="critical">🔴 Critical</option>
+              <option value="high">🟠 High</option>
+              <option value="medium">🟡 Medium</option>
+              <option value="low">🟢 Low</option>
+              <option value="minimal">⚪ Minimal</option>
             </select>
             {tags.length > 0 && (
               <select value={tagId} onChange={e => setTagId(e.target.value)}>
-                <option value="">Etiket seç</option>
+                <option value="">Select tag</option>
                 {tags.map(tag => <option key={tag.id} value={tag.id}>#{tag.name}</option>)}
               </select>
             )}
           </div>
 
           <div className="time-inputs">
-            <input type="number" placeholder="Saat" min="0" value={estimatedHourVal} onChange={e => setEstimatedHourVal(e.target.value)} />
-            <input type="number" placeholder="Dakika" min="0" max="59" value={estimatedMinutes} onChange={e => setEstimatedMinutes(e.target.value)} />
+            <input type="number" placeholder="Hours" min="0" value={estimatedHourVal} onChange={e => setEstimatedHourVal(e.target.value)} />
+            <input type="number" placeholder="Minutes" min="0" max="59" value={estimatedMinutes} onChange={e => setEstimatedMinutes(e.target.value)} />
           </div>
 
           <div style={{ borderTop: '1px solid #3a4a63', paddingTop: '12px' }}>
-            <div style={{ fontSize: '10px', color: '#5a6e88', marginBottom: '8px', letterSpacing: '0.5px' }}>SON TARİH</div>
+            <div style={{ fontSize: '10px', color: '#5a6e88', marginBottom: '8px', letterSpacing: '0.5px' }}>DEADLINE</div>
             <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
               {deadlineOptions.map(opt => (
                 <div
@@ -266,7 +269,7 @@ function Dashboard({ userId, email }) {
 
           {deadlineType && (
             <div style={{ background: '#243044', border: '1px solid rgba(74,143,232,0.3)', borderRadius: '10px', padding: '12px' }}>
-              <div style={{ fontSize: '10px', color: '#4a8fe8', letterSpacing: '1px', marginBottom: '8px' }}>⏰ HATIRLATICI</div>
+              <div style={{ fontSize: '10px', color: '#4a8fe8', letterSpacing: '1px', marginBottom: '8px' }}>⏰ REMINDER</div>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 {(reminderOptions[deadlineType] || []).map(opt => (
                   <div
@@ -285,8 +288,8 @@ function Dashboard({ userId, email }) {
           )}
 
           <div className="form-actions">
-            <button onClick={() => setShowForm(false)}>İptal</button>
-            <button className="add-btn" onClick={handleAddTask}>Kaydet</button>
+            <button onClick={() => setShowForm(false)}>Cancel</button>
+            <button className="add-btn" onClick={handleAddTask}>Save</button>
           </div>
         </div>
       )}
@@ -301,7 +304,7 @@ function Dashboard({ userId, email }) {
               color: !activeFilter ? '#4a8fe8' : '#5a6e88',
               border: '1px solid ' + (!activeFilter ? 'rgba(74,143,232,0.3)' : '#3a4a63')
             }}
-          >Tümü</div>
+          >All</div>
           {tags.map(tag => (
             <div
               key={tag.id}
@@ -331,8 +334,8 @@ function Dashboard({ userId, email }) {
             <div className="task-info">
               <div className="task-name">{task.title}</div>
               <div className="task-meta">
-                {task.deadline && `son tarih: ${task.deadline}`}
-                {task.estimated_hours > 0 && ` · ${Math.floor(task.estimated_hours / 60) > 0 ? Math.floor(task.estimated_hours / 60) + ' saat ' : ''}${task.estimated_hours % 60 > 0 ? task.estimated_hours % 60 + ' dk' : ''}`}
+                {task.deadline && `due: ${task.deadline}`}
+                {task.estimated_hours > 0 && ` · ${Math.floor(task.estimated_hours / 60) > 0 ? Math.floor(task.estimated_hours / 60) + 'h ' : ''}${task.estimated_hours % 60 > 0 ? task.estimated_hours % 60 + 'm' : ''}`}
                 {task.reminder_enabled ? ' · ⏰' : ''}
               </div>
               {expandedTask === task.id && task.description && (
@@ -345,7 +348,7 @@ function Dashboard({ userId, email }) {
                 ...getTagStyle(task.tag_color)
               }}>#{task.tag_name}</span>
             )}
-            <span className={`badge ${task.priority}`}>{task.priority.toUpperCase()}</span>
+            <span className={`badge ${task.priority}`}>{priorityLabel[task.priority]}</span>
             <button className="delete-btn" onClick={(e) => handleDelete(e, task.id)}>✕</button>
           </div>
         ))}

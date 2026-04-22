@@ -5,102 +5,82 @@ router.post('/suggest', async (req, res) => {
   const { tasks } = req.body;
 
   if (!tasks || tasks.length === 0) {
-    return res.json({ suggestion: 'Henüz görev eklenmemiş.' });
+    return res.json({ suggestion: 'No tasks yet. Add one to get started!' });
   }
 
-  const priorityMap = {
-    critical: 'kritik',
-    high: 'yüksek',
-    medium: 'orta',
-    low: 'düşük',
-    minimal: 'çok düşük'
-  };
+  const priorityScore = { critical: 0, high: 1, medium: 2, low: 3, minimal: 4 };
 
-  const oncelikPuan = { critical: 0, high: 1, medium: 2, low: 3, minimal: 4 };
+  const pending = tasks.filter(t => t.completed === 0);
 
-  const tamamlanmamis = tasks.filter(t => t.completed === 0);
-
-  if (tamamlanmamis.length === 0) {
-    return res.json({ suggestion: 'Tüm görevleri tamamladın, tebrikler! 🎉' });
+  if (pending.length === 0) {
+    return res.json({ suggestion: 'You completed all your tasks. Amazing work! 🎉' });
   }
 
-  // Akıllı sıralama: deadline yakınlığı > öncelik > süre
-  const bugun = new Date();
-  bugun.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  const skorHesapla = (t) => {
-    let skor = 0;
-
-    // Deadline skoru (yakın deadline = düşük skor = önce gelir)
+  const scoreTask = (t) => {
+    let score = 0;
     if (t.deadline) {
-      const deadlineDate = new Date(t.deadline);
-      deadlineDate.setHours(0, 0, 0, 0);
-      const gunFarki = Math.floor((deadlineDate - bugun) / (1000 * 60 * 60 * 24));
-      if (gunFarki <= 0) skor -= 1000;      // bugün veya geçmiş
-      else if (gunFarki === 1) skor -= 800; // yarın
-      else if (gunFarki <= 3) skor -= 600;  // 3 gün içinde
-      else if (gunFarki <= 7) skor -= 400;  // bu hafta
-      else skor -= 200;                      // daha uzak
+      const d = new Date(t.deadline);
+      d.setHours(0, 0, 0, 0);
+      const diff = Math.floor((d - today) / (1000 * 60 * 60 * 24));
+      if (diff <= 0) score -= 1000;
+      else if (diff === 1) score -= 800;
+      else if (diff <= 3) score -= 600;
+      else if (diff <= 7) score -= 400;
+      else score -= 200;
     }
-
-    // Öncelik skoru
-    skor += (oncelikPuan[t.priority] || 2) * 100;
-
-    // Tahmini süre skoru (kısa süre = biraz önce)
-    if (t.estimated_hours > 0) {
-      skor += Math.min(t.estimated_hours / 60, 5) * 10;
-    }
-
-    return skor;
+    score += (priorityScore[t.priority] || 2) * 100;
+    if (t.estimated_hours > 0) score += Math.min(t.estimated_hours / 60, 5) * 10;
+    return score;
   };
 
-  const sirali = [...tamamlanmamis].sort((a, b) => skorHesapla(a) - skorHesapla(b));
-  const secilenGorev = sirali[0];
+  const sorted = [...pending].sort((a, b) => scoreTask(a) - scoreTask(b));
+  const top = sorted[0];
 
-  // Neden metinleri
-  const bugunStr = bugun.toISOString().split('T')[0];
-  const yarinStr = new Date(bugun.getTime() + 86400000).toISOString().split('T')[0];
+  const todayStr = today.toISOString().split('T')[0];
+  const tomorrowStr = new Date(today.getTime() + 86400000).toISOString().split('T')[0];
 
-  let neden = '';
-  if (secilenGorev.deadline === bugunStr) {
-    neden = 'Son tarihi bugün, bekleyemez!';
-  } else if (secilenGorev.deadline === yarinStr) {
-    neden = 'Son tarihi yarın, zaman daralıyor!';
-  } else if (secilenGorev.deadline) {
-    neden = `Son tarihi ${secilenGorev.deadline} olduğu için erken başlanmalı.`;
-  } else if (secilenGorev.priority === 'critical') {
-    neden = 'Kritik öncelikli olduğu için hemen ilgilenilmeli.';
-  } else if (secilenGorev.priority === 'high') {
-    neden = 'Yüksek öncelikli olduğu için erken tamamlanmalı.';
-  } else if (secilenGorev.priority === 'medium') {
-    neden = 'Sırası geldi, artık yapma zamanı!';
+  let reason = '';
+  if (top.deadline === todayStr) {
+    reason = 'Due today — cannot wait any longer!';
+  } else if (top.deadline === tomorrowStr) {
+    reason = 'Due tomorrow, time is running out!';
+  } else if (top.deadline) {
+    reason = 'Due on ' + top.deadline + ', better start early.';
+  } else if (top.priority === 'critical') {
+    reason = 'Marked as critical — needs immediate attention.';
+  } else if (top.priority === 'high') {
+    reason = 'High priority task that should be handled soon.';
+  } else if (top.priority === 'medium') {
+    reason = 'Next in line — time to get it done!';
   } else {
-    neden = 'Diğer görevlere göre daha acil.';
+    reason = 'This one has been waiting long enough.';
   }
 
-  // Motivasyon cümleleri
-  const motivasyonlar = [
-    'Hadi başla, ilk adım en zoru! 🚀',
-    'Bunu bitirince kendini çok iyi hissedeceksin! 💪',
-    'Odaklan ve bitir, sonrasına bak! 🎯',
-    'Az kaldı, yapabilirsin! ⚡',
-    'Bugün yap, yarına bırakma! 🔥',
-    'Başladığında yarısı bitti sayılır! 😄',
-    'Küçük adımlar büyük sonuçlar doğurur! 🌟',
-    'Şu an zor gelse de bitince değer! 💫',
-    'Kendin için yap, gurur duyacaksın! 🏆',
-    'Bir kahve al ve başla! ☕',
-    'Erteleme modunu kapat, çalışma modunu aç! 💻',
-    'Bu görevi bitiren sen misin? Evet sensin! 😎',
-    'Haydi, sen yapabilirsin! 🙌',
-    'Biraz ter biraz zafer! 💦',
-    'Şimdi başlarsan akşam rahat edersin! 🌙',
+  const motivations = [
+    'Lets go, you got this! 🚀',
+    'Once you start, the hard part is over! 💪',
+    'Focus up and knock it out! 🎯',
+    'You can do it — start now! ⚡',
+    'Do not leave it for tomorrow! 🔥',
+    'Starting is already half the battle! 😄',
+    'Small steps lead to big results! 🌟',
+    'It will feel great once it is done! 💫',
+    'Do it for yourself — you will be proud! 🏆',
+    'Grab a coffee and get started! ☕',
+    'Close the procrastination tab and open this one! 💻',
+    'Is this task going to complete itself? Nope — that is you! 😎',
+    'Come on, you got this! 🙌',
+    'A little effort, a big win! 💦',
+    'Start now, relax tonight! 🌙',
   ];
-  const motivasyon = motivasyonlar[Math.floor(Math.random() * motivasyonlar.length)];
 
-  const oneri = `${secilenGorev.title} görevini önce tamamlamanı öneririm. ${neden} ${motivasyon}`;
+  const motivation = motivations[Math.floor(Math.random() * motivations.length)];
+  const suggestion = 'Focus on "' + top.title + '" first. ' + reason + ' ' + motivation;
 
-  res.json({ suggestion: oneri });
+  res.json({ suggestion });
 });
 
 module.exports = router;

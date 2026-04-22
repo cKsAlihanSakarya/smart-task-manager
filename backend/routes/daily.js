@@ -24,7 +24,7 @@ router.get('/:userId', (req, res) => {
 
 router.post('/', (req, res) => {
   const { user_id, title, tag_id } = req.body;
-  if (!user_id || !title) return res.status(400).json({ error: 'Zorunlu alanlar eksik.' });
+  if (!user_id || !title) return res.status(400).json({ error: 'Required fields missing.' });
 
   const cleanTagId = tag_id && tag_id !== '' && tag_id !== 'null' ? tag_id : null;
 
@@ -32,12 +32,12 @@ router.post('/', (req, res) => {
     'INSERT INTO daily_tasks (user_id, title, tag_id) VALUES (?, ?, ?)'
   ).run(user_id, title, cleanTagId);
 
-  res.json({ message: 'Günlük görev eklendi!', taskId: result.lastInsertRowid });
+  res.json({ message: 'Daily task added!', taskId: result.lastInsertRowid });
 });
 
 router.patch('/:id/complete', (req, res) => {
   const task = db.prepare('SELECT * FROM daily_tasks WHERE id = ?').get(req.params.id);
-  if (!task) return res.status(404).json({ error: 'Görev bulunamadı.' });
+  if (!task) return res.status(404).json({ error: 'Task not found.' });
 
   const todayStr = today();
 
@@ -60,7 +60,48 @@ router.patch('/:id/complete', (req, res) => {
 
 router.delete('/:id', (req, res) => {
   db.prepare('DELETE FROM daily_tasks WHERE id = ?').run(req.params.id);
-  res.json({ message: 'Günlük görev silindi.' });
+  res.json({ message: 'Daily task deleted.' });
+});
+
+router.post('/motivasyon', async (req, res) => {
+  const { streak } = req.body;
+
+  const messages = {
+    0: [
+      'Take one small step today — a big journey starts here! 🌱',
+      'Everything begins with a first step. Start today! 🚀',
+      'Daily habits change lives — begin with the easiest one! ✨',
+      'Even completing 1 task today makes tomorrow easier! 💪',
+    ],
+    low: [
+      'Great start! Keep the streak alive! 🔥',
+      'The first days are the hardest — you made it! Keep going! ⚡',
+      'Small but mighty! Keep it up and it becomes a habit! 🌟',
+      'You started — that is already the most important step! 🎯',
+    ],
+    mid: [
+      streak + ' days strong — do not stop now! 🔥',
+      'You are building momentum — keep it rolling! 💫',
+      'Getting stronger every single day! 💪',
+      'The habit is forming — stay consistent! 🏆',
+    ],
+    high: [
+      streak + ' days in a row — you are a legend! 👑',
+      streak + '-day streak? That is not luck, that is discipline! 🔥',
+      'Very few people reach this level — you should be proud! 🏆',
+      streak + ' days — this is not just a habit anymore, it is your lifestyle! ⚡',
+    ]
+  };
+
+  let category = '0';
+  if (streak >= 1 && streak <= 3) category = 'low';
+  else if (streak >= 4 && streak <= 7) category = 'mid';
+  else if (streak > 7) category = 'high';
+
+  const list = messages[category];
+  const mesaj = list[Math.floor(Math.random() * list.length)];
+
+  res.json({ mesaj });
 });
 
 module.exports = router;

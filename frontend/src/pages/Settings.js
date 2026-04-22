@@ -6,7 +6,7 @@ function Settings({ userId, email }) {
   const [newTag, setNewTag] = useState('');
   const [newTagColor, setNewTagColor] = useState('blue');
   const [showTagForm, setShowTagForm] = useState(false);
-  const [aiEnabled, setAiEnabled] = useState(true);
+  const [aiEnabled, setAiEnabled] = useState(localStorage.getItem('aiEnabled') !== 'false');
 
   useEffect(() => { fetchTags(); }, []);
 
@@ -29,11 +29,11 @@ function Settings({ userId, email }) {
   };
 
   const colorOptions = [
-    { value: 'blue', label: 'Mavi', bg: 'rgba(74,143,232,0.15)', color: '#4a8fe8' },
-    { value: 'green', label: 'Yeşil', bg: 'rgba(61,186,122,0.15)', color: '#3dba7a' },
-    { value: 'purple', label: 'Mor', bg: 'rgba(127,119,221,0.15)', color: '#7f77dd' },
-    { value: 'coral', label: 'Mercan', bg: 'rgba(216,90,48,0.15)', color: '#d85a30' },
-    { value: 'yellow', label: 'Sarı', bg: 'rgba(240,180,41,0.15)', color: '#f0b429' },
+    { value: 'blue',   label: 'Blue',   bg: 'rgba(74,143,232,0.15)',  color: '#4a8fe8' },
+    { value: 'green',  label: 'Green',  bg: 'rgba(61,186,122,0.15)',  color: '#3dba7a' },
+    { value: 'purple', label: 'Purple', bg: 'rgba(127,119,221,0.15)', color: '#7f77dd' },
+    { value: 'coral',  label: 'Coral',  bg: 'rgba(216,90,48,0.15)',   color: '#d85a30' },
+    { value: 'yellow', label: 'Yellow', bg: 'rgba(240,180,41,0.15)',  color: '#f0b429' },
   ];
 
   const getTagStyle = (color) => {
@@ -46,11 +46,11 @@ function Settings({ userId, email }) {
   return (
     <div className="main-content">
       <div className="content-header">
-        <h2>Ayarlar</h2>
+        <h2>Settings</h2>
       </div>
 
       <div className="task-form" style={{ gap: '0' }}>
-        <div style={{ fontSize: '11px', color: '#5a6e88', letterSpacing: '1px', marginBottom: '12px' }}>PROFİL</div>
+        <div style={{ fontSize: '11px', color: '#5a6e88', letterSpacing: '1px', marginBottom: '12px' }}>PROFILE</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
           <div style={{
             width: '44px', height: '44px', borderRadius: '50%',
@@ -60,13 +60,13 @@ function Settings({ userId, email }) {
           }}>{initials}</div>
           <div>
             <div style={{ fontSize: '13px', fontWeight: 500 }}>{email}</div>
-            <div style={{ fontSize: '11px', color: '#5a6e88' }}>TaskAI üyesi</div>
+            <div style={{ fontSize: '11px', color: '#5a6e88' }}>TaskAI member</div>
           </div>
         </div>
       </div>
 
       <div className="task-form">
-        <div style={{ fontSize: '11px', color: '#5a6e88', letterSpacing: '1px', marginBottom: '12px' }}>ETİKETLER</div>
+        <div style={{ fontSize: '11px', color: '#5a6e88', letterSpacing: '1px', marginBottom: '12px' }}>LABELS</div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
           {tags.map(tag => (
             <div key={tag.id} style={{
@@ -75,10 +75,7 @@ function Settings({ userId, email }) {
               fontSize: '12px', ...getTagStyle(tag.color)
             }}>
               #{tag.name}
-              <span
-                onClick={() => handleDeleteTag(tag.id)}
-                style={{ cursor: 'pointer', fontSize: '10px', opacity: 0.7 }}
-              >✕</span>
+              <span onClick={() => handleDeleteTag(tag.id)} style={{ cursor: 'pointer', fontSize: '10px', opacity: 0.7 }}>✕</span>
             </div>
           ))}
           <div
@@ -87,13 +84,13 @@ function Settings({ userId, email }) {
               padding: '4px 12px', borderRadius: '20px', fontSize: '12px',
               border: '1px dashed #3a4a63', color: '#5a6e88', cursor: 'pointer'
             }}
-          >+ yeni etiket</div>
+          >+ new label</div>
         </div>
 
         {showTagForm && (
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <input
-              placeholder="Etiket adı"
+              placeholder="Label name"
               value={newTag}
               onChange={e => setNewTag(e.target.value)}
               style={{ flex: 1, minWidth: '120px', background: '#243044', border: '1px solid #3a4a63', borderRadius: '8px', padding: '8px 12px', color: '#d8e2f0', fontSize: '13px' }}
@@ -105,17 +102,17 @@ function Settings({ userId, email }) {
             >
               {colorOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
-            <button className="add-btn" onClick={handleAddTag}>Ekle</button>
+            <button className="add-btn" onClick={handleAddTag}>Add</button>
           </div>
         )}
       </div>
 
       <div className="task-form">
-        <div style={{ fontSize: '11px', color: '#5a6e88', letterSpacing: '1px', marginBottom: '12px' }}>TERCİHLER</div>
+        <div style={{ fontSize: '11px', color: '#5a6e88', letterSpacing: '1px', marginBottom: '12px' }}>PREFERENCES</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid #3a4a63' }}>
           <div>
-            <div style={{ fontSize: '13px' }}>AI önerileri</div>
-            <div style={{ fontSize: '11px', color: '#5a6e88' }}>Dashboard'da AI banner göster</div>
+            <div style={{ fontSize: '13px' }}>AI suggestions</div>
+            <div style={{ fontSize: '11px', color: '#5a6e88' }}>Show AI banner on Dashboard</div>
           </div>
           <div
             onClick={() => {

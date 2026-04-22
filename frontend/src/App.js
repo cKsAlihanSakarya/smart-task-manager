@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -16,7 +16,7 @@ function Sidebar({ onLogout }) {
   const items = [
     { path: '/dashboard', icon: '▦', label: 'Dashboard' },
     { path: '/daily', icon: '◈', label: 'Daily Tasks' },
-    { path: '/calendar', icon: '▦', label: 'Takvim' },
+    { path: '/calendar', icon: '▦', label: 'Calendar' },
   ];
 
   return (
@@ -38,10 +38,10 @@ function Sidebar({ onLogout }) {
           className={`nav-item ${active === '/settings' ? 'active' : ''}`}
           onClick={() => navigate('/settings')}
         >
-          ⚙ Ayarlar
+          ⚙ Settings
         </div>
         <div className="nav-item" onClick={onLogout}>
-          ⎋ Çıkış
+          ⎋ Sign Out
         </div>
       </div>
     </div>
