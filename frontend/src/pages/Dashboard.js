@@ -11,12 +11,21 @@ function Dashboard({ userId, email, displayName }) {
   const [estimatedMinutes, setEstimatedMinutes] = useState('');
   const [tagId, setTagId] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
   const [aiSuggestion, setAiSuggestion] = useState('');
   const [expandedTask, setExpandedTask] = useState(null);
   const [activeFilter, setActiveFilter] = useState(null);
   const [deadlineType, setDeadlineType] = useState('');
   const [customDeadline, setCustomDeadline] = useState('');
   const [reminderOption, setReminderOption] = useState('');
+  const [editingTask, setEditingTask] = useState(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editPriority, setEditPriority] = useState('medium');
+  const [editCustomDeadline, setEditCustomDeadline] = useState('');
+  const [editTagId, setEditTagId] = useState('');
+  const [editHours, setEditHours] = useState('');
+  const [editMinutes, setEditMinutes] = useState('');
 
   const aiEnabled = localStorage.getItem('aiEnabled') !== 'false';
 
@@ -130,6 +139,35 @@ function Dashboard({ userId, email, displayName }) {
     fetchTasks();
   };
 
+  const handleEdit = (e, task) => {
+    e.stopPropagation();
+    setEditingTask(task.id);
+    setEditTitle(task.title);
+    setEditDescription(task.description || '');
+    setEditPriority(task.priority);
+    setEditCustomDeadline(task.deadline || '');
+    setEditTagId(task.tag_id || '');
+    const h = Math.floor((task.estimated_hours || 0) / 60);
+    const m = (task.estimated_hours || 0) % 60;
+    setEditHours(h || '');
+    setEditMinutes(m || '');
+  };
+
+  const handleSaveEdit = async (taskId) => {
+    await axios.patch(`http://localhost:3000/tasks/${taskId}`, {
+      title: editTitle,
+      description: editDescription,
+      priority: editPriority,
+      deadline: editCustomDeadline || null,
+      estimated_hours: (parseInt(editHours || 0) * 60) + parseInt(editMinutes || 0),
+      tag_id: editTagId || null,
+      reminder_enabled: 0,
+      reminder_time: null
+    });
+    setEditingTask(null);
+    fetchTasks();
+  };
+
   const handleDelete = async (e, id) => {
     e.stopPropagation();
     await axios.delete(`http://localhost:3000/tasks/${id}`);
@@ -154,9 +192,10 @@ function Dashboard({ userId, email, displayName }) {
     !t.completed && (t.deadline === todayStr || t.deadline === tomorrowStr)
   );
 
-  const filteredTasks = activeFilter
+  const filteredTasks = (activeFilter
     ? tasks.filter(t => t.tag_id === activeFilter)
-    : tasks;
+    : tasks
+  ).filter(t => showCompleted ? true : t.completed === 0);
 
   const completedCount = tasks.filter(t => t.completed === 1).length;
   const pendingCount = tasks.filter(t => t.completed === 0).length;
@@ -185,7 +224,21 @@ function Dashboard({ userId, email, displayName }) {
     <div className="main-content">
       <div className="content-header">
         <h2>Hello, {displayName} 👋</h2>
-        <button className="add-btn" onClick={() => setShowForm(!showForm)}>＋ New Task</button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => setShowCompleted(!showCompleted)}
+            style={{
+              background: showCompleted ? 'rgba(61,186,122,0.15)' : 'transparent',
+              color: showCompleted ? '#3dba7a' : '#5a6e88',
+              border: '1px solid ' + (showCompleted ? 'rgba(61,186,122,0.4)' : '#3a4a63'),
+              borderRadius: '8px', padding: '9px 18px', fontSize: '13px',
+              fontWeight: 600, cursor: 'pointer'
+            }}
+          >
+            {showCompleted ? '✓ Hide Completed' : '✓ Show Completed'}
+          </button>
+          <button className="add-btn" onClick={() => setShowForm(!showForm)}>＋ New Task</button>
+        </div>
       </div>
 
       <div className="stats">
@@ -323,33 +376,71 @@ function Dashboard({ userId, email, displayName }) {
       <div style={{ marginTop: '8px' }}></div>
       <div className="task-list">
         {filteredTasks.map(task => (
-          <div
-            key={task.id}
-            className={`task-item ${task.completed ? 'completed' : ''}`}
-            onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
-          >
-            <div className="task-check" onClick={(e) => handleComplete(e, task.id)}>
-              {task.completed ? '✓' : ''}
-            </div>
-            <div className="task-info">
-              <div className="task-name">{task.title}</div>
-              <div className="task-meta">
-                {task.deadline && `due: ${task.deadline}`}
-                {task.estimated_hours > 0 && ` · ${Math.floor(task.estimated_hours / 60) > 0 ? Math.floor(task.estimated_hours / 60) + 'h ' : ''}${task.estimated_hours % 60 > 0 ? task.estimated_hours % 60 + 'm' : ''}`}
-                {task.reminder_enabled ? ' · ⏰' : ''}
+          <div key={task.id}>
+            {editingTask === task.id ? (
+              <div className="task-form">
+                <input placeholder="Task name" value={editTitle} onChange={e => setEditTitle(e.target.value)} />
+                <input placeholder="Description" value={editDescription} onChange={e => setEditDescription(e.target.value)} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <select value={editPriority} onChange={e => setEditPriority(e.target.value)}>
+                    <option value="critical">🔴 Critical</option>
+                    <option value="high">🟠 High</option>
+                    <option value="medium">🟡 Medium</option>
+                    <option value="low">🟢 Low</option>
+                    <option value="minimal">⚪ Minimal</option>
+                  </select>
+                  {tags.length > 0 && (
+                    <select value={editTagId} onChange={e => setEditTagId(e.target.value)}>
+                      <option value="">Select tag</option>
+                      {tags.map(tag => <option key={tag.id} value={tag.id}>#{tag.name}</option>)}
+                    </select>
+                  )}
+                </div>
+                <div className="time-inputs">
+                  <input type="number" placeholder="Hours" min="0" value={editHours} onChange={e => setEditHours(e.target.value)} />
+                  <input type="number" placeholder="Minutes" min="0" max="59" value={editMinutes} onChange={e => setEditMinutes(e.target.value)} />
+                </div>
+                <input
+                  type="date"
+                  value={editCustomDeadline}
+                  onChange={e => setEditCustomDeadline(e.target.value)}
+                  style={{ background: '#243044', border: '1px solid #3a4a63', borderRadius: '8px', padding: '8px 12px', color: '#d8e2f0', fontSize: '13px' }}
+                />
+                <div className="form-actions">
+                  <button onClick={() => setEditingTask(null)}>Cancel</button>
+                  <button className="add-btn" onClick={() => handleSaveEdit(task.id)}>Save</button>
+                </div>
               </div>
-              {expandedTask === task.id && task.description && (
-                <div className="task-description">{task.description}</div>
-              )}
-            </div>
-            {task.tag_name && (
-              <span style={{
-                fontSize: '10px', padding: '2px 8px', borderRadius: '20px',
-                ...getTagStyle(task.tag_color)
-              }}>#{task.tag_name}</span>
+            ) : (
+              <div
+                className={`task-item ${task.completed ? 'completed' : ''}`}
+                onClick={() => setExpandedTask(expandedTask === task.id ? null : task.id)}
+              >
+                <div className="task-check" onClick={(e) => handleComplete(e, task.id)}>
+                  {task.completed ? '✓' : ''}
+                </div>
+                <div className="task-info">
+                  <div className="task-name">{task.title}</div>
+                  <div className="task-meta">
+                    {task.deadline && `due: ${task.deadline}`}
+                    {task.estimated_hours > 0 && ` · ${Math.floor(task.estimated_hours / 60) > 0 ? Math.floor(task.estimated_hours / 60) + 'h ' : ''}${task.estimated_hours % 60 > 0 ? task.estimated_hours % 60 + 'm' : ''}`}
+                    {task.reminder_enabled ? ' · ⏰' : ''}
+                  </div>
+                  {expandedTask === task.id && task.description && (
+                    <div className="task-description">{task.description}</div>
+                  )}
+                </div>
+                {task.tag_name && (
+                  <span style={{
+                    fontSize: '10px', padding: '2px 8px', borderRadius: '20px',
+                    ...getTagStyle(task.tag_color)
+                  }}>#{task.tag_name}</span>
+                )}
+                <span className={`badge ${task.priority}`}>{priorityLabel[task.priority]}</span>
+                <button className="delete-btn" onClick={(e) => handleEdit(e, task)}>✏️</button>
+                <button className="delete-btn" onClick={(e) => handleDelete(e, task.id)}>✕</button>
+              </div>
             )}
-            <span className={`badge ${task.priority}`}>{priorityLabel[task.priority]}</span>
-            <button className="delete-btn" onClick={(e) => handleDelete(e, task.id)}>✕</button>
           </div>
         ))}
       </div>

@@ -47,4 +47,21 @@ router.delete('/:id', (req, res) => {
   res.json({ message: 'Görev silindi!' });
 });
 
+// Görev güncelle
+router.patch('/:id', (req, res) => {
+  const { title, description, priority, deadline, estimated_hours, tag_id, reminder_enabled, reminder_time } = req.body;
+  
+  const cleanTagId = tag_id && tag_id !== '' && tag_id !== 'null' ? tag_id : null;
+  const cleanReminderTime = reminder_time && reminder_time !== '' ? reminder_time : null;
+
+  db.prepare(`
+    UPDATE tasks SET 
+      title = ?, description = ?, priority = ?, deadline = ?,
+      estimated_hours = ?, tag_id = ?, reminder_enabled = ?, reminder_time = ?
+    WHERE id = ?
+  `).run(title, description, priority, deadline, estimated_hours, cleanTagId, reminder_enabled || 0, cleanReminderTime, req.params.id);
+
+  res.json({ message: 'Task updated!' });
+});
+
 module.exports = router;
