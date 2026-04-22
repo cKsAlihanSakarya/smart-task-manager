@@ -8,79 +8,96 @@ router.post('/suggest', async (req, res) => {
     return res.json({ suggestion: 'No tasks yet. Add one to get started!' });
   }
 
-  const priorityScore = { critical: 0, high: 1, medium: 2, low: 3, minimal: 4 };
-
   const pending = tasks.filter(t => t.completed === 0);
 
   if (pending.length === 0) {
     return res.json({ suggestion: 'You completed all your tasks. Amazing work! 🎉' });
   }
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const taskList = pending.map(t => {
+    const hours = Math.floor((t.estimated_hours || 0) / 60);
+    const mins = (t.estimated_hours || 0) % 60;
+    const duration = hours > 0 && mins > 0 ? `${hours}h ${mins}m`
+                   : hours > 0 ? `${hours}h`
+                   : mins > 0 ? `${mins}m`
+                   : 'not specified';
+    return `- ${t.title} (priority: ${t.priority}, deadline: ${t.deadline || 'none'}, duration: ${duration})`;
+  }).join('\n');
 
-  const scoreTask = (t) => {
-    let score = 0;
-    if (t.deadline) {
-      const d = new Date(t.deadline);
-      d.setHours(0, 0, 0, 0);
-      const diff = Math.floor((d - today) / (1000 * 60 * 60 * 24));
-      if (diff <= 0) score -= 1000;
-      else if (diff === 1) score -= 800;
-      else if (diff <= 3) score -= 600;
-      else if (diff <= 7) score -= 400;
-      else score -= 200;
+  const prompt = `<s>[INST] You are a task management assistant. Reply in English only.
+
+From the task list below, pick the single most important task and write EXACTLY this — nothing more:
+"You should work on [TASK NAME] first. [One sentence why]. [One motivational sentence]."
+
+Tasks:
+${taskList} [/INST]</s>`;
+
+  try {
+    const response = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'mistral',
+        prompt: prompt,
+        stream: false
+      })
+    });
+
+    const data = await response.json();
+    let suggestion = data.response.trim();
+
+    // Görev listesi gelirse kes
+    const taskNames = pending.map(t => t.title);
+    let cutIndex = suggestion.length;
+    for (const name of taskNames) {
+      const idx = suggestion.indexOf(name + ' (');
+      if (idx !== -1 && idx < cutIndex) cutIndex = idx;
     }
-    score += (priorityScore[t.priority] || 2) * 100;
-    if (t.estimated_hours > 0) score += Math.min(t.estimated_hours / 60, 5) * 10;
-    return score;
-  };
+    suggestion = suggestion.substring(0, cutIndex).trim();
 
-  const sorted = [...pending].sort((a, b) => scoreTask(a) - scoreTask(b));
-  const top = sorted[0];
+    // Köşeli parantez içindeki fazla kısmı temizle
+    suggestion = suggestion.replace(/\[.*?\]/g, '').trim();
 
-  const todayStr = today.toISOString().split('T')[0];
-  const tomorrowStr = new Date(today.getTime() + 86400000).toISOString().split('T')[0];
-
-  let reason = '';
-  if (top.deadline === todayStr) {
-    reason = 'Due today — cannot wait any longer!';
-  } else if (top.deadline === tomorrowStr) {
-    reason = 'Due tomorrow, time is running out!';
-  } else if (top.deadline) {
-    reason = 'Due on ' + top.deadline + ', better start early.';
-  } else if (top.priority === 'critical') {
-    reason = 'Marked as critical — needs immediate attention.';
-  } else if (top.priority === 'high') {
-    reason = 'High priority task that should be handled soon.';
-  } else if (top.priority === 'medium') {
-    reason = 'Next in line — time to get it done!';
-  } else {
-    reason = 'This one has been waiting long enough.';
+    res.json({ suggestion });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'AI suggestion failed.' });
   }
+});
 
-  const motivations = [
-    'Lets go, you got this! 🚀',
-    'Once you start, the hard part is over! 💪',
-    'Focus up and knock it out! 🎯',
-    'You can do it — start now! ⚡',
-    'Do not leave it for tomorrow! 🔥',
-    'Starting is already half the battle! 😄',
-    'Small steps lead to big results! 🌟',
-    'It will feel great once it is done! 💫',
-    'Do it for yourself — you will be proud! 🏆',
-    'Grab a coffee and get started! ☕',
-    'Close the procrastination tab and open this one! 💻',
-    'Is this task going to complete itself? Nope — that is you! 😎',
-    'Come on, you got this! 🙌',
-    'A little effort, a big win! 💦',
-    'Start now, relax tonight! 🌙',
-  ];
+router.post('/analysis', async (req, res) => {
+  const { stats } = req.body;
 
-  const motivation = motivations[Math.floor(Math.random() * motivations.length)];
-  const suggestion = 'Focus on "' + top.title + '" first. ' + reason + ' ' + motivation;
+  const prompt = `<s>[INST] You are a productivity assistant. Reply in English only.
 
-  res.json({ suggestion });
+The user has the following task statistics:
+- Total tasks: ${stats.total}
+- Completed: ${stats.completed}
+- Completion rate: ${stats.completionRate}%
+- Critical tasks: ${stats.byPriority.critical}
+- High priority: ${stats.byPriority.high}
+- Pending tasks: ${stats.total - stats.completed}
+
+Write EXACTLY 2-3 sentences analyzing their productivity. Be specific, encouraging and actionable. Nothing more. [/INST]</s>`;
+
+  try {
+    const response = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'mistral',
+        prompt: prompt,
+        stream: false
+      })
+    });
+
+    const data = await response.json();
+    let analysis = data.response.trim().replace(/\[.*?\]/g, '').trim();
+    res.json({ analysis });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'AI analysis failed.' });
+  }
 });
 
 module.exports = router;

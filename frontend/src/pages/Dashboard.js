@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-function Dashboard({ userId, email }) {
+function Dashboard({ userId, email, displayName }) {
   const [tasks, setTasks] = useState([]);
   const [tags, setTags] = useState([]);
   const [title, setTitle] = useState('');
@@ -184,7 +184,7 @@ function Dashboard({ userId, email }) {
   return (
     <div className="main-content">
       <div className="content-header">
-        <h2>Hello, {email} 👋</h2>
+        <h2>Hello, {displayName} 👋</h2>
         <button className="add-btn" onClick={() => setShowForm(!showForm)}>＋ New Task</button>
       </div>
 

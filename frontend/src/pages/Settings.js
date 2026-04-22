@@ -7,8 +7,16 @@ function Settings({ userId, email }) {
   const [newTagColor, setNewTagColor] = useState('blue');
   const [showTagForm, setShowTagForm] = useState(false);
   const [aiEnabled, setAiEnabled] = useState(localStorage.getItem('aiEnabled') !== 'false');
+  const [displayName, setDisplayName] = useState(localStorage.getItem('displayName') || '');
+  const [nameSaved, setNameSaved] = useState(false);
 
   useEffect(() => { fetchTags(); }, []);
+
+  const handleSaveDisplayName = () => {
+    localStorage.setItem('displayName', displayName);
+    setNameSaved(true);
+    setTimeout(() => setNameSaved(false), 2000);
+  };
 
   const fetchTags = async () => {
     const res = await axios.get(`http://localhost:3000/tags/${userId}`);
@@ -29,11 +37,11 @@ function Settings({ userId, email }) {
   };
 
   const colorOptions = [
-    { value: 'blue',   label: 'Blue',   bg: 'rgba(74,143,232,0.15)',  color: '#4a8fe8' },
-    { value: 'green',  label: 'Green',  bg: 'rgba(61,186,122,0.15)',  color: '#3dba7a' },
+    { value: 'blue', label: 'Blue', bg: 'rgba(74,143,232,0.15)', color: '#4a8fe8' },
+    { value: 'green', label: 'Green', bg: 'rgba(61,186,122,0.15)', color: '#3dba7a' },
     { value: 'purple', label: 'Purple', bg: 'rgba(127,119,221,0.15)', color: '#7f77dd' },
-    { value: 'coral',  label: 'Coral',  bg: 'rgba(216,90,48,0.15)',   color: '#d85a30' },
-    { value: 'yellow', label: 'Yellow', bg: 'rgba(240,180,41,0.15)',  color: '#f0b429' },
+    { value: 'coral', label: 'Coral', bg: 'rgba(216,90,48,0.15)', color: '#d85a30' },
+    { value: 'yellow', label: 'Yellow', bg: 'rgba(240,180,41,0.15)', color: '#f0b429' },
   ];
 
   const getTagStyle = (color) => {
@@ -61,6 +69,16 @@ function Settings({ userId, email }) {
           <div>
             <div style={{ fontSize: '13px', fontWeight: 500 }}>{email}</div>
             <div style={{ fontSize: '11px', color: '#5a6e88' }}>TaskAI member</div>
+            <div style={{ marginTop: '8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input
+                placeholder="Display name"
+                value={displayName}
+                onChange={e => setDisplayName(e.target.value)}
+                style={{ flex: 1, background: '#243044', border: '1px solid #3a4a63', borderRadius: '8px', padding: '7px 12px', color: '#d8e2f0', fontSize: '13px' }}
+              />
+              <button className="add-btn" onClick={handleSaveDisplayName}>Save</button>
+            </div>
+            {nameSaved && <div style={{ fontSize: '11px', color: '#3dba7a', marginTop: '6px' }}>Saved! ✓</div>}
           </div>
         </div>
       </div>

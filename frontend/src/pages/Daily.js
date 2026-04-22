@@ -121,6 +121,8 @@ function Daily({ userId }) {
           </div>
         </div>
       )}
+      
+      <div style={{ marginTop: '8px' }}></div>
 
       {showForm && (
         <div className="task-form">

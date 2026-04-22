@@ -14,12 +14,14 @@ const taskRoutes = require('./routes/tasks');
 const aiRoutes = require('./routes/ai');
 const dailyRoutes = require('./routes/daily');
 const tagRoutes = require('./routes/tags');
+const statsRoutes = require('./routes/stats');
 
 app.use('/auth', authRoutes);
 app.use('/tasks', taskRoutes);
 app.use('/ai', aiRoutes);
 app.use('/daily', dailyRoutes);
 app.use('/tags', tagRoutes);
+app.use('/stats', statsRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Smart Task Manager API çalışıyor!' });

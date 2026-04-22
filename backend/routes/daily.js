@@ -64,44 +64,38 @@ router.delete('/:id', (req, res) => {
 });
 
 router.post('/motivasyon', async (req, res) => {
-  const { streak } = req.body;
+  const { streak, tamamlanan, toplam } = req.body;
 
-  const messages = {
-    0: [
-      'Take one small step today — a big journey starts here! 🌱',
-      'Everything begins with a first step. Start today! 🚀',
-      'Daily habits change lives — begin with the easiest one! ✨',
-      'Even completing 1 task today makes tomorrow easier! 💪',
-    ],
-    low: [
-      'Great start! Keep the streak alive! 🔥',
-      'The first days are the hardest — you made it! Keep going! ⚡',
-      'Small but mighty! Keep it up and it becomes a habit! 🌟',
-      'You started — that is already the most important step! 🎯',
-    ],
-    mid: [
-      streak + ' days strong — do not stop now! 🔥',
-      'You are building momentum — keep it rolling! 💫',
-      'Getting stronger every single day! 💪',
-      'The habit is forming — stay consistent! 🏆',
-    ],
-    high: [
-      streak + ' days in a row — you are a legend! 👑',
-      streak + '-day streak? That is not luck, that is discipline! 🔥',
-      'Very few people reach this level — you should be proud! 🏆',
-      streak + ' days — this is not just a habit anymore, it is your lifestyle! ⚡',
-    ]
-  };
+  let context = '';
+  if (streak === 0) context = 'The user has not started a streak yet. Encourage them to begin.';
+  else if (streak <= 3) context = `The user has a ${streak}-day streak. They are just getting started. Encourage them to keep going.`;
+  else if (streak <= 7) context = `The user has a ${streak}-day streak. They are building momentum. Motivate them to stay consistent.`;
+  else context = `The user has an impressive ${streak}-day streak. Make them feel legendary.`;
 
-  let category = '0';
-  if (streak >= 1 && streak <= 3) category = 'low';
-  else if (streak >= 4 && streak <= 7) category = 'mid';
-  else if (streak > 7) category = 'high';
+  const prompt = `<s>[INST] You are a motivational assistant. Reply in English only.
 
-  const list = messages[category];
-  const mesaj = list[Math.floor(Math.random() * list.length)];
+${context} They completed ${tamamlanan} out of ${toplam} daily tasks today.
 
-  res.json({ mesaj });
+Write EXACTLY one short motivational sentence — nothing more, no labels, no explanation. [/INST]</s>`;
+
+  try {
+    const response = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'mistral',
+        prompt: prompt,
+        stream: false
+      })
+    });
+
+    const data = await response.json();
+    let mesaj = data.response.trim().replace(/^["']|["']$/g, '').replace(/\[.*?\]/g, '').trim();
+    res.json({ mesaj });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Motivation failed.' });
+  }
 });
 
 module.exports = router;

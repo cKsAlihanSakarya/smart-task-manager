@@ -7,6 +7,7 @@ import Daily from './pages/Daily';
 import Calendar from './pages/Calendar';
 import Settings from './pages/Settings';
 import './App.css';
+import Statistics from './pages/Statistics';
 
 function Sidebar({ onLogout }) {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ function Sidebar({ onLogout }) {
     { path: '/dashboard', icon: '▦', label: 'Dashboard' },
     { path: '/daily', icon: '◈', label: 'Daily Tasks' },
     { path: '/calendar', icon: '▦', label: 'Calendar' },
+    { path: '/statistics', icon: '📊', label: 'Statistics' },
   ];
 
   return (
@@ -56,6 +58,7 @@ function AppLayout() {
   const email = localStorage.getItem('email');
 
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const displayName = localStorage.getItem('displayName') || email;
 
   if (!userId && !isAuthPage) {
     return <Navigate to="/login" />;
@@ -71,6 +74,7 @@ function AppLayout() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/statistics" element={<Statistics userId={userId} />} />
       </Routes>
     );
   }
@@ -79,9 +83,10 @@ function AppLayout() {
     <div className="dashboard">
       <Sidebar onLogout={handleLogout} />
       <Routes>
-        <Route path="/dashboard" element={<Dashboard userId={userId} email={email} />} />
+        <Route path="/dashboard" element={<Dashboard userId={userId} email={email} displayName={displayName} />} />
         <Route path="/daily" element={<Daily userId={userId} />} />
         <Route path="/calendar" element={<Calendar userId={userId} />} />
+        <Route path="/statistics" element={<Statistics userId={userId} />} />
         <Route path="/settings" element={<Settings userId={userId} email={email} />} />
         <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
