@@ -18,9 +18,9 @@ router.post('/suggest', async (req, res) => {
     const hours = Math.floor((t.estimated_hours || 0) / 60);
     const mins = (t.estimated_hours || 0) % 60;
     const duration = hours > 0 && mins > 0 ? `${hours}h ${mins}m`
-                   : hours > 0 ? `${hours}h`
-                   : mins > 0 ? `${mins}m`
-                   : 'not specified';
+      : hours > 0 ? `${hours}h`
+        : mins > 0 ? `${mins}m`
+          : 'not specified';
     return `- ${t.title} (priority: ${t.priority}, deadline: ${t.deadline || 'none'}, duration: ${duration})`;
   }).join('\n');
 
